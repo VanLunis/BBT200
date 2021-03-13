@@ -18,6 +18,14 @@ URL = f"http://{RPC_USER}:{RPC_PASSWORD}@localhost:8332"
 HEADERS = {"content-type": "application/json"}
 
 
+ACTION_CHOICES = {
+    1: "Show block by number",
+    2: "Show block by hash",
+    3: "Show transaction by hash",
+    4: "Show outputs for address",
+    0: "Exit program"
+}
+
 class ScriptPubKey:
     def __init__(self, scp_in):
         self.asm = scp_in["asm"]
@@ -58,7 +66,7 @@ class Vout:
         if self.scriptPubKey.isNull:
             retstr += "No address!"
         else:
-            retstr += f"{self.value} to address: {self.scriptPubKey.address}"
+            retstr += f"{self.value:06f} BTE to address: {self.scriptPubKey.address}"
         retstr += f" Type: {self.scriptPubKey.type}"
         return retstr
 
@@ -114,8 +122,9 @@ class Transaction:
         assert self.has_address(address), f"Error accessing address {address} in transaction {self.transHash}!"
         retstr = "      Outputs:\n"
         for output in self.addressDict[address]:
-            retstr += f"         Output {output.number}: {output.value} BTE\n"
+            retstr += f"         Output {output.number}: {output.value:6f} BTE\n"
         return retstr
+
 
 class Block:
     def __init__(self, response_result):
@@ -274,26 +283,103 @@ def _get_transaction_from_address(address: str, startblock: int, searchlength: i
             if block.has_address(address):
                 transaction_string += block.get_transactions_from_address(address)
             bar.next()
+    if transaction_string == "":
+        transaction_string = f"No transactions found between blocks {endblock} and {startblock} for address {address}"
     return transaction_string
 
 
+def _get_blockobject_by_hash(blockhas: str):
+    return Block(_get_block_by_hash(blockhas))
 
-myHash = _get_blockhash_by_number(3125)
-blocket = _get_block_by_hash(myHash)
-myBlock = Block(blocket)
-myTrans = Transaction(_get_transaction("a29ad6390646bc495fb8d6b6571f1b75455b3914d6e3867631f7eee95097ed50"))
 
-blockchain_info = _get_blockchain_info()
-topBlock = _get_top_block(blockchain_info)
-chaininfo = _get_chain_info()
-mempoolinfo = _get_mempool_info()
-networkinfo = _get_network_info()
+def _get_blockobject_by_number(blocknumber: int):
+    return _get_blockobject_by_hash(_get_blockhash_by_number(blocknumber))
 
-print(str(myBlock))
-print(str(myTrans))
 
-transactions = myBlock.get_transactions_from_address("1eduGsrvBJcfyTMij2rYXk9viiVV78PNq")
-print(transactions)
+def _get_transaction_object_by_hash(transhash: str):
+    return Transaction(_get_transaction(transhash))
 
-trans_string = _get_transaction_from_address("1eduGsrvBJcfyTMij2rYXk9viiVV78PNq", topBlock, 2000)
-print(trans_string)
+
+def get_transactions_from_address(topBlock):
+    print("Input address:")
+    address = input()
+    print(_get_transaction_from_address(address, topBlock, 2000))
+    return True
+
+
+def get_blockinfo_by_number(topBlock):
+    print("Input blocknumber:")
+    blocknumber = input()
+    while not blocknumber.isnumeric():
+        print("Input valid integer blocknumber!")
+        blocknumber = input()
+    block = _get_blockobject_by_number(int(blocknumber))
+    print(str(block))
+    return True
+
+
+def get_blockinfo_by_hash(topBlock):
+    print("Input blockhash:")
+    blockhash = input()
+    print(str(_get_blockobject_by_hash(blockhash)))
+    return True
+
+
+def get_transaction_by_hash(topBlock):
+    print("Input transaction hash:")
+    transhash = input()
+    print(str(_get_transaction_object_by_hash(transhash)))
+    return True
+
+
+def end_program(topBlock):
+    print("Exiting, thank you for using and have a great day!")
+    return False
+
+
+def _get_info():
+    blockchain_info = _get_blockchain_info()
+    topBlock = _get_top_block(blockchain_info)
+    chaininfo = _get_chain_info()
+    mempoolinfo = _get_mempool_info()
+    networkinfo = _get_network_info()
+    return (blockchain_info, topBlock, chaininfo, mempoolinfo,networkinfo)
+
+
+def _print_action_info():
+    print("Select action:")
+    for number, action in ACTION_CHOICES.items():
+        print(f"{number}. {action}")
+
+
+def _system_loop():
+    actions = {
+        1: get_blockinfo_by_number,
+        2: get_blockinfo_by_hash,
+        3: get_transaction_by_hash,
+        4: get_transactions_from_address,
+        0: end_program
+    }
+    blockchain_info, topBlock, chaininfo, mempoolinfo, networkinfo = _get_info()
+    while True:
+        _print_action_info()
+        selection = input()
+        keep_going = True
+        try:
+            keep_going = actions[int(selection)](topBlock)
+        except KeyError:
+            print(f"No action mapped for selection {selection}")
+        except ValueError:
+            print("Input integer for selection")
+        if not keep_going:
+            break
+        print("*" * 64 + "\n")
+
+
+def main():
+    _system_loop()
+    exit(0)
+
+
+if __name__ == '__main__':
+    main()
