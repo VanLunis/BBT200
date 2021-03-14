@@ -23,8 +23,111 @@ ACTION_CHOICES = {
     2: "Show block by hash",
     3: "Show transaction by hash",
     4: "Show outputs for address",
+    5: "Reload data",
     0: "Exit program"
 }
+
+
+class Networkinfo():
+    def __init__(self):
+        self.update()
+
+    def update(self):
+        result = self._get_network_info()
+        self._set_values(result)
+
+    def _set_values(self, response_result):
+        self.version = response_result["version"]
+        self.subversion = response_result["subversion"]
+        self.protocolversion = response_result["protocolversion"]
+        self.localservices = response_result["localservices"]
+        self.localservicesnames = response_result["localservicesnames"]
+        self.localrelay = response_result["localrelay"]
+        self.timeoffset = response_result["timeoffset"]
+        self.networkactive = response_result["networkactive"]
+        self.connections = response_result["connections"]
+        self.connections_in = response_result["connections_in"]
+        self.connections_out = response_result["connections_out"]
+        self.networks = response_result["networks"]
+        self.relayfee = response_result["relayfee"]
+        self.incrementalfee = response_result["incrementalfee"]
+        self.localaddresses = response_result["localaddresses"]
+        self.warnings = response_result["warnings"]
+
+    def _get_network_info(self):
+        payload = {
+            "method": "getnetworkinfo"
+        }
+        response = requests.post(URL, data=json.dumps(payload), headers=HEADERS).json()
+        return response["result"]
+
+
+class Mempoolinfo:
+    def __init__(self):
+        self.update()
+
+    def update(self):
+        result = self._get_mempool_info()
+        self._set_values(result)
+
+    def _set_values(self, response_result):
+        self.loaded = response_result["loaded"]
+        self.size = response_result["size"]
+        self.bytes = response_result["bytes"]
+        self.usage = response_result["usage"]
+        self.maxmempool = response_result["maxmempool"]
+        self.mempoolminfee = response_result["mempoolminfee"]
+        self.minrelaytxfee = response_result["minrelaytxfee"]
+        self.unbroadcastcount = response_result["unbroadcastcount"]
+
+    def _get_mempool_info(self):
+        payload = {
+            "method": "getmempoolinfo"
+        }
+        response = requests.post(URL, data=json.dumps(payload), headers=HEADERS).json()
+        return response["result"]
+
+
+class BlockchainInfo:
+    def __init__(self):
+        self.update()
+
+    def update(self):
+        result = self._get_blockchain_info()
+        self._set_blockchain_values(result)
+        self.mempool = Mempoolinfo()
+        self.network = Networkinfo()
+
+    def _set_blockchain_values(self, response_result):
+        self.chain = response_result["chain"]
+        self.blocks = response_result["blocks"]
+        self.headers = response_result["headers"]
+        self.bestblockhash = response_result["bestblockhash"]
+        self.difficulty = response_result["difficulty"]
+        self.mediantime = response_result["mediantime"]
+        self.verificationprogress = response_result["verificationprogress"]
+        self.initialblockdownload = response_result["initialblockdownload"]
+        self.chainwork = response_result["chainwork"]
+        self.size_on_disk = response_result["size_on_disk"]
+        self.pruned = response_result["pruned"]
+        self.softforks = response_result["softforks"]
+        self.warnings = response_result["warnings"]
+
+    def __str__(self):
+        retstr = f"Number of blocks: {self.blocks}\n" \
+                 f"Size on disk: {self.size_on_disk / 1000000} MB\n" \
+                 f"Latest block: {self.bestblockhash}\n" \
+                 f"Mempool size (transactions): {self.mempool.size}\n" \
+                 f"Connections: {self.network.connections}"
+        return retstr
+
+    def _get_blockchain_info(self):
+        payload = {
+            "method": "getblockchaininfo"
+        }
+        response = requests.post(URL, data=json.dumps(payload), headers=HEADERS).json()
+        return response["result"]
+
 
 class ScriptPubKey:
     def __init__(self, scp_in):
@@ -107,7 +210,7 @@ class Transaction:
             print(f"Error creating transaction, KeyError {e}")
 
     def __str__(self):
-        retstr = f"Txid (hash): {self.transHash}\n" \
+        retstr = f"Txid (hash): {self.id}\n" \
                  f"In block: {self.blockhash}\n" \
                  f"Inputs: {len(self.vin)}\n" \
                  f"Outputs: {len(self.vout)}\n"
@@ -144,6 +247,7 @@ class Block:
             self.mediantime = response_result["mediantime"]
             self.nonce = response_result["nonce"]
             self.bits = response_result["bits"]
+            self.difficulty = response_result["difficulty"]
             self.chainwork = response_result["chainwork"]
             self.numTransactions = response_result["nTx"]
             self.previousblockhash = response_result["previousblockhash"]
@@ -175,9 +279,10 @@ class Block:
                  f"Merkle root: {self.merkleroot}\n" \
                  f"Height: {self.blocknumber}\n" \
                  f"Time: {datetime.datetime.fromtimestamp(self.time).isoformat().replace('T', ' ')}\n" \
+                 f"Difficulty: {self.difficulty}\n" \
                  f"Transactions: {self.numTransactions}\n"
         for number, transaction in enumerate(self.transactions):
-            retstr += f"   Transaction {number}: {transaction.transHash}\n"
+            retstr += f"   Transaction {number}: {transaction.id}\n"
         return retstr
 
     def has_address(self, address: str):
@@ -220,38 +325,6 @@ def _get_blockhash_by_number(blocknumber: int):
         print(f"Error accessing block number <{blocknumber}>! Error: {error} with id {response['id']}")
         blockhash = None
     return blockhash
-
-
-def _get_blockchain_info():
-    payload = {
-        "method": "getblockchaininfo"
-    }
-    response = requests.post(URL, data=json.dumps(payload), headers=HEADERS).json()
-    return response
-
-
-def _get_chain_info():
-    payload = {
-        "method": "getblockchaininfo"
-    }
-    response = requests.post(URL, data=json.dumps(payload), headers=HEADERS).json()
-    return response
-
-
-def _get_network_info():
-    payload = {
-        "method": "getnetworkinfo"
-    }
-    response = requests.post(URL, data=json.dumps(payload), headers=HEADERS).json()
-    return response
-
-
-def _get_mempool_info():
-    payload = {
-        "method": "getmempoolinfo"
-    }
-    response = requests.post(URL, data=json.dumps(payload), headers=HEADERS).json()
-    return response
 
 
 def _get_top_block(blockchain_info):
@@ -300,14 +373,14 @@ def _get_transaction_object_by_hash(transhash: str):
     return Transaction(_get_transaction(transhash))
 
 
-def get_transactions_from_address(topBlock):
+def get_transactions_from_address(blockchaininfo):
     print("Input address:")
     address = input()
-    print(_get_transaction_from_address(address, topBlock, 2000))
+    print(_get_transaction_from_address(address, blockchaininfo.blocks, 2000))
     return True
 
 
-def get_blockinfo_by_number(topBlock):
+def get_blockinfo_by_number(blockchaininfo = None):
     print("Input blocknumber:")
     blocknumber = input()
     while not blocknumber.isnumeric():
@@ -318,32 +391,34 @@ def get_blockinfo_by_number(topBlock):
     return True
 
 
-def get_blockinfo_by_hash(topBlock):
+def get_blockinfo_by_hash(blockchaininfo = None):
     print("Input blockhash:")
     blockhash = input()
     print(str(_get_blockobject_by_hash(blockhash)))
     return True
 
 
-def get_transaction_by_hash(topBlock):
+def get_transaction_by_hash(blockchaininfo = None):
     print("Input transaction hash:")
     transhash = input()
     print(str(_get_transaction_object_by_hash(transhash)))
     return True
 
 
-def end_program(topBlock):
+def _print_blockchain_info(blockchaininfo: BlockchainInfo):
+    print("*" * 64)
+    print(str(blockchaininfo))
+
+
+def reload_data(blockchaininfo: BlockchainInfo):
+    blockchaininfo.update()
+    _print_blockchain_info(blockchaininfo)
+    return True
+
+
+def end_program(blockchaininfo = None):
     print("Exiting, thank you for using and have a great day!")
     return False
-
-
-def _get_info():
-    blockchain_info = _get_blockchain_info()
-    topBlock = _get_top_block(blockchain_info)
-    chaininfo = _get_chain_info()
-    mempoolinfo = _get_mempool_info()
-    networkinfo = _get_network_info()
-    return (blockchain_info, topBlock, chaininfo, mempoolinfo,networkinfo)
 
 
 def _print_action_info():
@@ -358,15 +433,18 @@ def _system_loop():
         2: get_blockinfo_by_hash,
         3: get_transaction_by_hash,
         4: get_transactions_from_address,
+        5: reload_data,
         0: end_program
     }
-    blockchain_info, topBlock, chaininfo, mempoolinfo, networkinfo = _get_info()
+    blockchaininfo = BlockchainInfo()
+    _print_blockchain_info(blockchaininfo)
+    print("*" * 64)
     while True:
         _print_action_info()
         selection = input()
         keep_going = True
         try:
-            keep_going = actions[int(selection)](topBlock)
+            keep_going = actions[int(selection)](blockchaininfo)
         except KeyError:
             print(f"No action mapped for selection {selection}")
         except ValueError:
