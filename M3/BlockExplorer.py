@@ -1,8 +1,8 @@
-'''
+"""
 Linus Eriksson
 Inlämning m3-uppgift-P1-explorer-python
 BBT200
-'''
+"""
 
 import datetime
 import requests
@@ -216,7 +216,7 @@ class Transaction:
                  f"Outputs: {len(self.vout)}\n"
         for output in (self.vout):
             retstr += f"   {str(output)}\n"
-        return retstr
+        return retstr[:-1]
 
     def has_address(self, address: str):
         return address in self.addressDict.keys()
@@ -283,7 +283,7 @@ class Block:
                  f"Transactions: {self.numTransactions}\n"
         for number, transaction in enumerate(self.transactions):
             retstr += f"   Transaction {number}: {transaction.id}\n"
-        return retstr
+        return retstr[:-1]
 
     def has_address(self, address: str):
         return address in self.addresDict.keys()
@@ -348,7 +348,7 @@ def _get_transaction(transaction_hash: str):
 
 def _get_transaction_from_address(address: str, startblock: int, searchlength: int):
     endblock = startblock - searchlength
-    print(f"Searching for addres {address} in blocks [{startblock}, {endblock}]")
+    print(f"Searching for addres {address} in blocks [{startblock} -> {endblock}]")
     transaction_string = ""
     with Bar("Traversing blocks:", max=searchlength) as bar:
         for blocknumber in range(startblock, endblock - 1, -1):
@@ -357,8 +357,8 @@ def _get_transaction_from_address(address: str, startblock: int, searchlength: i
                 transaction_string += block.get_transactions_from_address(address)
             bar.next()
     if transaction_string == "":
-        transaction_string = f"No transactions found between blocks {endblock} and {startblock} for address {address}"
-    return transaction_string
+        transaction_string = f"No transactions found between blocks {endblock} and {startblock} for address <{address}>!\n"
+    return transaction_string[:-1]
 
 
 def _get_blockobject_by_hash(blockhas: str):
@@ -376,6 +376,7 @@ def _get_transaction_object_by_hash(transhash: str):
 def get_transactions_from_address(blockchaininfo):
     print("Input address:")
     address = input()
+    print("*" * 64)
     print(_get_transaction_from_address(address, blockchaininfo.blocks, 2000))
     return True
 
@@ -386,6 +387,7 @@ def get_blockinfo_by_number(blockchaininfo = None):
     while not blocknumber.isnumeric():
         print("Input valid integer blocknumber!")
         blocknumber = input()
+    print("*" * 64)
     block = _get_blockobject_by_number(int(blocknumber))
     print(str(block))
     return True
@@ -394,6 +396,7 @@ def get_blockinfo_by_number(blockchaininfo = None):
 def get_blockinfo_by_hash(blockchaininfo = None):
     print("Input blockhash:")
     blockhash = input()
+    print("*" * 64)
     print(str(_get_blockobject_by_hash(blockhash)))
     return True
 
@@ -401,6 +404,7 @@ def get_blockinfo_by_hash(blockchaininfo = None):
 def get_transaction_by_hash(blockchaininfo = None):
     print("Input transaction hash:")
     transhash = input()
+    print("*" * 64)
     print(str(_get_transaction_object_by_hash(transhash)))
     return True
 
