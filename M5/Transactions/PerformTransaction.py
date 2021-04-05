@@ -49,7 +49,6 @@ def main():
     raw = _create_raw_transaction("e2d1bf5083155814cdba69773a4d15c7619e0abaa77974fc797e8e817b0ab849", 1, "17L9gukeJ2ViUhntFFeCz5rN7QBaB6mr2d", 0.1)
     signed = _sign_raw_transaction(raw, ["Ky61jh5ieJSkcyhtT533fsT9FZovZXiVvAeaYZUFLHc38kRgNUSc"])
     sent = _send_raw_transaction(signed["hex"])
-    return True
 
 
 if __name__ == '__main__':

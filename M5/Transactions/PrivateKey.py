@@ -53,6 +53,7 @@ class CoinKey:
 
     def __init__(self):
         self.private_key = None
+        self.private_hex = None
         self.public_key_point = None
         self.uncompressed = None
         self.compressed = None
@@ -91,6 +92,11 @@ class CoinKey:
             self.private_key = value
         else:
             raise ValueError(f"Private key {value} larger than max {_r}!")
+
+    def get_private_hex(self):
+        if self.private_hex is None:
+            self.private_hex = hex(self.private_key)
+        return self.private_hex
 
     def generate_private_with_seed(self, seed):
         random.seed(seed)
@@ -178,6 +184,7 @@ class CoinKey:
         if self.public_key_point is None:
             raise ValueError("No public key generated!")
         retstr = f"Private key: {self.private_key}\n" \
+                 f"Private key hex: {self.get_private_hex()}\n" \
                  f"Public key point: x: {self.public_key_point.x} y: {self.public_key_point.y}\n" \
                  f"Uncompressed public key: {self.get_uncompressed()}\n" \
                  f"Compressed public key: {self.get_compressed()}\n" \
