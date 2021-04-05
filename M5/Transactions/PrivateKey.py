@@ -1,3 +1,9 @@
+"""
+Linus Eriksson
+m5-uppgift-P2-wallet-tx-python
+BBT200
+"""
+
 import binascii
 import hashlib
 import secrets

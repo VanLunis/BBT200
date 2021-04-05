@@ -1,7 +1,10 @@
-
+"""
+Linus Eriksson
+m5-uppgift-P2-wallet-tx-python
+BBT200
+"""
 
 from PrivateKey import CoinKey, ElipsisPoint
-
 
 ACTION_CHOICES = {
     1: "Create key safe",
