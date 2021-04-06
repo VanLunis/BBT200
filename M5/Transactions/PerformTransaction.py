@@ -1,8 +1,5 @@
-import datetime
 import requests
 import json
-
-from PrivateKey import CoinKey, ElipsisPoint
 
 RPC_USER = "admin"
 RPC_PASSWORD = "admin"
@@ -24,7 +21,12 @@ def _create_raw_transaction(transaction_id, output_number, address, amount):
         "params": [[inputs], [outputs]]
     }
     response = requests.post(URL, data=json.dumps(payload), headers=HEADERS).json()
-    return response["result"]
+    error = response["error"]
+    if not error:
+        return response["result"]
+    else:
+        print(f"Error creating transaction! Code: {error['code']} with message {error['message']}")
+        return None
 
 
 def _sign_raw_transaction(transaction_hex, private_keys):
@@ -33,7 +35,12 @@ def _sign_raw_transaction(transaction_hex, private_keys):
         "params": [transaction_hex, private_keys]
     }
     response = requests.post(URL, data=json.dumps(payload), headers=HEADERS).json()
-    return response["result"]
+    error = response["error"]
+    if not error:
+        return response["result"]
+    else:
+        print(f"Error signing transaction! Code: {error['code']} with message {error['message']}")
+        return None
 
 
 def _send_raw_transaction(signed_hex, allow_high_fees=False):
@@ -42,13 +49,42 @@ def _send_raw_transaction(signed_hex, allow_high_fees=False):
         "params": [signed_hex, allow_high_fees]
     }
     response = requests.post(URL, data=json.dumps(payload), headers=HEADERS).json()
-    return response["result"]
+    error = response["error"]
+    if not error:
+        return response["result"]
+    else:
+        print(f"Error sending transaction! Code: {error['code']} with message {error['message']}")
+        return None
+
+
+def _system_loop():
+    while True:
+        print("Enter hash id for transaction to spend:")
+        transid = input()
+        print("Enter output number for input to spend:")
+        vout_number = int(input())
+        print("Enter address to send to:")
+        address = input()
+        print("Enter amount to send (BTE):")
+        amount = float(input())
+        print("Enter private key for signing:")
+        key = input()
+        print(f"About to send {amount} BTE from vout {vout_number} of transaction "
+              f"{transid} to {address} and sign with {key}\n"
+              f"Continue? y/n")
+        choice = input()
+        if choice.lower() == "y":
+            raw = _create_raw_transaction(transid,vout_number, address, amount)
+            if raw:
+                signed = _sign_raw_transaction(raw, [key])
+                if signed:
+                    sent = _send_raw_transaction(signed["hex"])
+                    if sent:
+                        print(sent)
 
 
 def main():
-    raw = _create_raw_transaction("e2d1bf5083155814cdba69773a4d15c7619e0abaa77974fc797e8e817b0ab849", 1, "17L9gukeJ2ViUhntFFeCz5rN7QBaB6mr2d", 0.1)
-    signed = _sign_raw_transaction(raw, ["Ky61jh5ieJSkcyhtT533fsT9FZovZXiVvAeaYZUFLHc38kRgNUSc"])
-    sent = _send_raw_transaction(signed["hex"])
+    _system_loop()
 
 
 if __name__ == '__main__':

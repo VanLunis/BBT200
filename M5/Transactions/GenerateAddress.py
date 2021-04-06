@@ -4,7 +4,7 @@ m5-uppgift-P2-wallet-tx-python
 BBT200
 """
 
-from PrivateKey import CoinKey, ElipsisPoint
+from PrivateKey import CoinKey
 
 ACTION_CHOICES = {
     1: "Create key safe",
