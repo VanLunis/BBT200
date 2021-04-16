@@ -43,7 +43,7 @@ def _sign_raw_transaction(transaction_hex, private_keys):
         return None
 
 
-def _send_raw_transaction(signed_hex, allow_high_fees=False):
+def _send_raw_transaction(signed_hex, allow_high_fees=0):
     payload = {
         "method": "sendrawtransaction",
         "params": [signed_hex, allow_high_fees]
